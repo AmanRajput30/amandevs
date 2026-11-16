@@ -388,7 +388,7 @@ export default function Contact() {
                     </div>
 
                     <p className="mt-2 text-sm leading-relaxed text-emerald-900">
-                      Thank you, <strong>{formData.name}</strong>. Your project enquiry has been recorded in our system and forwarded to <strong>{site.email}</strong>. Aman Raj will review your requirements for <strong>{formData.service}</strong> and contact you within 24 hours.
+                      Thank you, <strong>{formData.name}</strong>. Your project enquiry has been successfully recorded in our system. Aman Raj will review your project brief for <strong>{formData.service}</strong> and get back to you directly.
                     </p>
 
                     {/* Reference ID Pill */}

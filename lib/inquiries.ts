@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { getDb, ensureInquiriesTable } from "./db";
 
 export interface InquiryData {
   id: string;
@@ -17,10 +18,10 @@ export interface InquiryData {
   metadata?: {
     userAgent?: string;
     ip?: string;
-    notificationDispatched?: boolean;
     webhookDispatched?: boolean;
     smtpAdminDispatched?: boolean;
     smtpAckDispatched?: boolean;
+    notificationDispatched?: boolean;
   };
 }
 
@@ -39,9 +40,9 @@ export function generateInquiryId(): string {
 }
 
 /**
- * Ensure storage directory and inquiries ledger exist
+ * Helper to ensure local storage ledger exists (used only for offline local dev fallback)
  */
-async function ensureLedgerExists(): Promise<void> {
+async function ensureLocalLedgerExists(): Promise<void> {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
     try {
@@ -50,132 +51,149 @@ async function ensureLedgerExists(): Promise<void> {
       await fs.writeFile(INQUIRIES_FILE, JSON.stringify([], null, 2), "utf-8");
     }
   } catch (err) {
-    console.error("[Inquiry Storage] Failed to initialize ledger directory:", err);
+    console.error("[Inquiry Storage] Failed to initialize local ledger directory:", err);
   }
 }
 
 /**
- * Save an inquiry to persistent storage
+ * Save an inquiry to local JSON ledger (development fallback only)
+ */
+async function saveInquiryToJson(inquiry: InquiryData): Promise<void> {
+  await ensureLocalLedgerExists();
+  const raw = await fs.readFile(INQUIRIES_FILE, "utf-8");
+  const list: InquiryData[] = JSON.parse(raw || "[]");
+  list.unshift(inquiry);
+  await fs.writeFile(INQUIRIES_FILE, JSON.stringify(list, null, 2), "utf-8");
+}
+
+/**
+ * Read inquiries from local JSON ledger (development fallback only)
+ */
+async function getInquiriesFromJson(): Promise<InquiryData[]> {
+  await ensureLocalLedgerExists();
+  const raw = await fs.readFile(INQUIRIES_FILE, "utf-8");
+  return JSON.parse(raw || "[]");
+}
+
+/**
+ * Save an inquiry.
+ * Inserts into Neon PostgreSQL when DATABASE_URL is available.
+ * Does not fall back to JSON in production.
  */
 export async function saveInquiry(inquiry: InquiryData): Promise<void> {
-  await ensureLedgerExists();
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL is not configured in production. Cannot persist inquiry.");
+    }
+    // Local development fallback when DATABASE_URL is intentionally absent
+    console.warn("[Inquiry Storage] DATABASE_URL not set. Saving to local JSON ledger for development.");
+    await saveInquiryToJson(inquiry);
+    return;
+  }
+
   try {
-    const raw = await fs.readFile(INQUIRIES_FILE, "utf-8");
-    const list: InquiryData[] = JSON.parse(raw || "[]");
-    list.unshift(inquiry);
-    // Persist pretty-printed JSON
-    await fs.writeFile(INQUIRIES_FILE, JSON.stringify(list, null, 2), "utf-8");
-  } catch (err) {
-    console.error("[Inquiry Storage] Error writing to inquiries.json:", err);
+    await ensureInquiriesTable();
+    const sql = getDb();
+    await sql`
+      INSERT INTO inquiries (
+        id,
+        created_at,
+        name,
+        business_name,
+        email,
+        phone,
+        service,
+        budget,
+        timeline,
+        description,
+        reference_url,
+        status,
+        metadata
+      ) VALUES (
+        ${inquiry.id},
+        ${inquiry.createdAt},
+        ${inquiry.name},
+        ${inquiry.businessName || "Not specified"},
+        ${inquiry.email},
+        ${inquiry.phone},
+        ${inquiry.service},
+        ${inquiry.budget},
+        ${inquiry.timeline},
+        ${inquiry.description},
+        ${inquiry.referenceUrl || null},
+        ${inquiry.status || "NEW"},
+        ${JSON.stringify(inquiry.metadata || {})}
+      )
+    `;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown database error";
+    console.error("[Database Persistence Error]:", msg);
+    // Explicit controlled error without silent JSON fallback in production
+    throw new Error("Failed to persist inquiry to database.");
   }
 }
 
 /**
- * Retrieve all inquiries (for administrative audit)
+ * Retrieve all inquiries ordered by created_at descending.
  */
 export async function getInquiries(): Promise<InquiryData[]> {
-  await ensureLedgerExists();
-  try {
-    const raw = await fs.readFile(INQUIRIES_FILE, "utf-8");
-    return JSON.parse(raw || "[]");
-  } catch (err) {
-    console.error("[Inquiry Storage] Error reading inquiries.json:", err);
-    return [];
-  }
-}
+  const databaseUrl = process.env.DATABASE_URL;
 
-/**
- * Dispatch notification email via Resend API if configured
- */
-export async function sendNotificationEmail(inquiry: InquiryData): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const recipient = process.env.LEAD_RECEIVER_EMAIL || process.env.SUPPORT_EMAIL || "hello@amandevs.run.place";
-
-  if (!apiKey) {
-    return false;
+  if (!databaseUrl) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL is not configured in production.");
+    }
+    return getInquiriesFromJson();
   }
 
   try {
-    // 1. Send notification to AmanDevs Studio Inbox (hello@amandevs.run.place)
-    const adminEmailHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e5e5; border-radius: 12px; background-color: #fafafa;">
-        <div style="border-bottom: 2px solid #101014; padding-bottom: 12px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #101014;">🚀 New Commercial Lead [${inquiry.id}]</h2>
-          <p style="margin: 4px 0 0; color: #666; font-size: 13px;">Received via AmanDevs Studio (amandevs.run.place)</p>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 8px 0; color: #666; width: 140px;"><strong>Client Name:</strong></td>
-            <td style="padding: 8px 0; color: #101014;"><strong>${inquiry.name}</strong></td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Business / Brand:</strong></td>
-            <td style="padding: 8px 0; color: #101014;">${inquiry.businessName || "Not specified"}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Email:</strong></td>
-            <td style="padding: 8px 0;"><a href="mailto:${inquiry.email}" style="color: #8B75FF;">${inquiry.email}</a></td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>WhatsApp / Phone:</strong></td>
-            <td style="padding: 8px 0;"><a href="https://wa.me/${inquiry.phone.replace(/[^0-9]/g, "")}" style="color: #059669; font-weight: bold;">${inquiry.phone} (Click to WhatsApp)</a></td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Service Required:</strong></td>
-            <td style="padding: 8px 0; color: #101014;"><strong>${inquiry.service}</strong></td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Budget Range:</strong></td>
-            <td style="padding: 8px 0; color: #101014;">${inquiry.budget}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Target Timeline:</strong></td>
-            <td style="padding: 8px 0; color: #101014;">${inquiry.timeline}</td>
-          </tr>
-          ${inquiry.referenceUrl ? `
-          <tr>
-            <td style="padding: 8px 0; color: #666;"><strong>Reference Site:</strong></td>
-            <td style="padding: 8px 0;"><a href="${inquiry.referenceUrl}" target="_blank" style="color: #8B75FF;">${inquiry.referenceUrl}</a></td>
-          </tr>
-          ` : ""}
-        </table>
-
-        <div style="background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-          <h4 style="margin: 0 0 8px; color: #101014; font-size: 13px; text-transform: uppercase;">Project Brief:</h4>
-          <p style="margin: 0; color: #333; line-height: 1.5; font-size: 14px; white-space: pre-wrap;">${inquiry.description}</p>
-        </div>
-
-        <div style="border-top: 1px solid #e5e5e5; padding-top: 12px; font-size: 12px; color: #888;">
-          Sent to primary inbox: <strong>${recipient}</strong> · Reference: ${inquiry.id}
-        </div>
-      </div>
+    await ensureInquiriesTable();
+    const sql = getDb();
+    const rows = await sql`
+      SELECT 
+        id,
+        created_at,
+        name,
+        business_name,
+        email,
+        phone,
+        service,
+        budget,
+        timeline,
+        description,
+        reference_url,
+        status,
+        metadata
+      FROM inquiries
+      ORDER BY created_at DESC
     `;
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: `AmanDevs Leads <hello@amandevs.run.place>`,
-        to: [recipient],
-        subject: `[AmanDevs Inquiry] ${inquiry.service} — ${inquiry.name} (${inquiry.businessName || "New Lead"})`,
-        html: adminEmailHtml,
-        reply_to: inquiry.email,
-      }),
-    });
-
-    return res.ok;
-  } catch (err) {
-    console.error("[Email Notification] Failed to send via Resend:", err);
-    return false;
+    return rows.map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+      name: String(r.name),
+      businessName: String(r.business_name || "Not specified"),
+      email: String(r.email),
+      phone: String(r.phone),
+      service: String(r.service),
+      budget: String(r.budget),
+      timeline: String(r.timeline),
+      description: String(r.description),
+      referenceUrl: r.reference_url ? String(r.reference_url) : undefined,
+      status: (r.status as InquiryData["status"]) || "NEW",
+      metadata: typeof r.metadata === "object" && r.metadata !== null ? (r.metadata as InquiryData["metadata"]) : undefined,
+    }));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown database error";
+    console.error("[Database Query Error]:", msg);
+    throw new Error("Failed to retrieve inquiries from database.");
   }
 }
 
 /**
- * Dispatch webhook to external automation tools (Slack/Discord/Make/Zapier)
+ * Dispatch webhook to external automation tools (Slack/Discord/Make/Zapier) if configured
  */
 export async function dispatchWebhook(inquiry: InquiryData): Promise<boolean> {
   const webhookUrl = process.env.CONTACT_NOTIFICATION_WEBHOOK;

@@ -8,10 +8,6 @@ import {
   dispatchWebhook,
   type InquiryData,
 } from "@/lib/inquiries";
-import {
-  sendAdminNotificationEmail,
-  sendCustomerAcknowledgementEmail,
-} from "@/lib/email";
 
 // In-memory IP rate limiter: max 5 requests per 10 minutes per IP
 const rateLimitMap = new Map<string, number[]>();
@@ -159,15 +155,11 @@ export async function POST(request: Request) {
       metadata: {
         userAgent,
         ip,
-        notificationDispatched: false,
         webhookDispatched: false,
-        smtpAdminDispatched: false,
-        smtpAckDispatched: false,
       },
     };
 
-    // 6. SAVE TO PERSISTENT STORAGE FIRST (Critical requirement)
-    // If ledger storage fails, abort and report error
+    // 6. SAVE TO PERSISTENT STORAGE
     try {
       await saveInquiry(inquiryRecord);
     } catch (storageErr) {
@@ -181,56 +173,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. DISPATCH ZOHO SMTP NOTIFICATIONS (Post-save resilient delivery)
-    // If SMTP fails, enquiry is ALREADY safely preserved in data/inquiries.json
-    let adminEmailSuccess = false;
-    let customerAckSuccess = false;
-
-    try {
-      const adminResult = await sendAdminNotificationEmail(inquiryRecord);
-      adminEmailSuccess = adminResult.success;
-      if (!adminResult.success && adminResult.error) {
-        console.warn(`[Zoho SMTP Lead Notification] Status: unconfirmed (${adminResult.error})`);
-      }
-    } catch (smtpErr: unknown) {
-      const msg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
-      console.error(`[Zoho SMTP Admin Error]: ${msg}`);
-    }
-
-    try {
-      const ackResult = await sendCustomerAcknowledgementEmail(inquiryRecord);
-      customerAckSuccess = ackResult.success;
-      if (!ackResult.success && ackResult.error) {
-        // Safe debug log without printing credentials
-        console.warn(`[Zoho SMTP Customer Ack] Status: unconfirmed (${ackResult.error})`);
-      }
-    } catch (ackErr: unknown) {
-      const msg = ackErr instanceof Error ? ackErr.message : String(ackErr);
-      console.error(`[Zoho SMTP Customer Ack Error]: ${msg}`);
-    }
-
-    if (inquiryRecord.metadata) {
-      inquiryRecord.metadata.smtpAdminDispatched = adminEmailSuccess;
-      inquiryRecord.metadata.smtpAckDispatched = customerAckSuccess;
-      inquiryRecord.metadata.notificationDispatched = adminEmailSuccess;
-    }
-
-    // 8. DISPATCH WEBHOOK (if configured)
+    // 7. Dispatch Webhook (if configured)
     const webhookSent = await dispatchWebhook(inquiryRecord);
     if (inquiryRecord.metadata) {
       inquiryRecord.metadata.webhookDispatched = webhookSent;
     }
 
     console.log(
-      `[AmanDevs] ✅ Commercial Inquiry Logged [${mode.toUpperCase()}]: ${inquiryId} from ${inquiryRecord.name} (${inquiryRecord.phone}) | SMTP Dispatched: ${adminEmailSuccess}`
+      `[AmanDevs] ✅ Commercial Inquiry Logged [${mode.toUpperCase()}]: ${inquiryId} from ${inquiryRecord.name} (${inquiryRecord.phone})`
     );
 
     return NextResponse.json({
       success: true,
       inquiryId,
-      message: `Your project enquiry has been logged under Reference #${inquiryId}. Aman Raj will review your brief and contact you within 24 hours.`,
+      message: `Your project enquiry has been logged under Reference #${inquiryId}. Aman Raj will review your brief and follow up with you.`,
       supportEmail: primarySupportEmail,
-      emailDispatched: adminEmailSuccess,
       inquiry: {
         id: inquiryId,
         name: inquiryRecord.name,
@@ -250,22 +207,16 @@ export async function POST(request: Request) {
   }
 }
 
-/**
- * Administrative API to audit logged inquiries
- * Protected by ADMIN_SECRET_KEY
- */
+// Administrative inquiry audit endpoint (protected by ADMIN_SECRET_KEY)
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const secret = url.searchParams.get("secret");
-  const configuredSecret = process.env.ADMIN_SECRET_KEY;
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get("key");
 
+  const configuredSecret = process.env.ADMIN_SECRET_KEY;
   if (!configuredSecret || secret !== configuredSecret) {
     return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
   }
 
   const list = await getInquiries();
-  return NextResponse.json({
-    total: list.length,
-    inquiries: list,
-  });
+  return NextResponse.json({ total: list.length, inquiries: list });
 }
