@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { site } from "@/lib/site";
 
 export const runtime = "edge";
 export const alt = "AmanDevs — Independent Web Development Studio | India & Worldwide";
@@ -96,7 +97,7 @@ export default async function Image() {
           </div>
 
           <span style={{ color: "#D2F946", fontSize: "20px", fontWeight: "bold" }}>
-            amandevs.run.place
+            {site.domain}
           </span>
         </div>
       </div>

@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     if (mode === "quick") {
       // In quick callback mode, description and email can be inferred if omitted
       if (!finalEmail) {
-        finalEmail = `${cleanPhone.replace(/[^0-9]/g, "")}@client-callback.amandevs.run.place`;
+        finalEmail = `${cleanPhone.replace(/[^0-9]/g, "")}@client-callback.amandevs-eta.vercel.app`;
       }
       if (!finalDescription) {
         finalDescription = `Quick callback requested for: ${cleanService}. Direct phone/WhatsApp: ${cleanPhone}`;

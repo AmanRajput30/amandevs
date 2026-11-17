@@ -204,7 +204,7 @@ export async function dispatchWebhook(inquiry: InquiryData): Promise<boolean> {
       event: "new_inquiry",
       inquiryId: inquiry.id,
       timestamp: inquiry.createdAt,
-      source: "amandevs.run.place",
+      source: "amandevs-eta.vercel.app",
       client: {
         name: inquiry.name,
         businessName: inquiry.businessName,

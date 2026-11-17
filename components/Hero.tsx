@@ -187,7 +187,7 @@ export default function Hero() {
                     <span className="h-3 w-3 rounded-full bg-amber-400" />
                     <span className="h-3 w-3 rounded-full bg-emerald-500" />
                     <span className="ml-2 font-mono text-xs text-paper/50">
-                      amandevs.run.place/studio
+                      {site.domain}/studio
                     </span>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-lime/20 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-lime">

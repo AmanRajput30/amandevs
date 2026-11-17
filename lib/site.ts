@@ -72,8 +72,14 @@ export const site = {
   },
   statement:
     "Independent web development studio serving businesses across India and internationally. We design and build modern websites, e-commerce stores, booking engines, and custom web applications.",
-  domain: "amandevs.run.place",
-  url: "https://amandevs.run.place",
+  domain:
+    process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes("run.place")
+      ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname
+      : "amandevs-eta.vercel.app",
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes("run.place")
+      ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "")
+      : "https://amandevs-eta.vercel.app",
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@amandevs.run.place",
   supportEmail: "hello@amandevs.run.place",
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "917369083321",

@@ -8,7 +8,7 @@ AmanDevs is an independent, developer-led web development studio founded by **Am
 
 ## 🚀 Live Studio Information
 
-- **Production Domain:** [https://amandevs.run.place](https://amandevs.run.place)
+- **Production Domain:** [https://amandevs-eta.vercel.app](https://amandevs-eta.vercel.app)
 - **Founder & Lead Developer:** Aman Raj
 - **Studio Model:** Independent Developer-Led Studio
 - **Primary Market:** India (with capability to serve international clients)
@@ -135,7 +135,7 @@ cp .env.example .env.local
 ```
 Configure your contact information and target domain:
 ```env
-NEXT_PUBLIC_SITE_URL=https://amandevs.run.place
+NEXT_PUBLIC_SITE_URL=https://amandevs-eta.vercel.app
 NEXT_PUBLIC_CONTACT_EMAIL=hello@amandevs.run.place
 NEXT_PUBLIC_WHATSAPP_NUMBER=919999999999
 NEXT_PUBLIC_PHONE_NUMBER=+91 99999 99999
@@ -183,7 +183,7 @@ git push origin main
    - **Build command:** `npm run build`
    - **Publish directory:** `.next`
 5. Under **Environment variables**, add the keys defined in your `.env.local`:
-   - `NEXT_PUBLIC_SITE_URL`: `https://amandevs.run.place`
+   - `NEXT_PUBLIC_SITE_URL`: `https://amandevs-eta.vercel.app`
    - `NEXT_PUBLIC_CONTACT_EMAIL`: Your operational email address
    - `NEXT_PUBLIC_WHATSAPP_NUMBER`: Your business WhatsApp number (with country code, e.g. `917369083321`)
    - `NEXT_PUBLIC_PHONE_NUMBER`: Your display phone number (e.g. `+91 73690 83321`)
@@ -210,7 +210,7 @@ To make the studio 100% operational for your real commercial inquiries, update t
 
 | Variable Name | Description | Example / Recommended Value |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Canonical domain of the studio | `https://amandevs.run.place` |
+| `NEXT_PUBLIC_SITE_URL` | Canonical domain of the studio | `https://amandevs-eta.vercel.app` |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Official inbox for receiving leads & support | `hello@amandevs.run.place` |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | WhatsApp number for direct chats (digits only, include country code) | `917369083321` |
 | `NEXT_PUBLIC_PHONE_NUMBER` | Display phone number shown in the header/footer | `+91 73690 83321` |
