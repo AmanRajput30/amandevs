@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Home, MessageCircle } from "lucide-react";
 import { site } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "404 — Page Not Found",
+  description:
+    "The page or digital solution you are looking for has moved or does not exist on AmanDevs. Return to home or contact our studio.",
+};
 
 export default function NotFound() {
   return (

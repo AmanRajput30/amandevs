@@ -496,6 +496,7 @@ export default function Contact() {
                       className="hidden"
                       tabIndex={-1}
                       autoComplete="off"
+                      aria-hidden="true"
                     />
 
                     {status === "error" && (

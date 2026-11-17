@@ -12,7 +12,7 @@ export default function FloatingWhatsApp() {
   );
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2">
       {/* Small dismissable tooltip banner */}
       {showTooltip && (
         <div className="relative hidden max-w-xs items-center gap-2 rounded-2xl border border-ink/10 bg-white p-3 shadow-xl sm:flex">
@@ -36,13 +36,13 @@ export default function FloatingWhatsApp() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Direct WhatsApp chat with Aman Raj"
-        className="press group relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+        className="press group relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
       >
-        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+        <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white" />
+          <span className="relative inline-flex h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-emerald-500 ring-2 ring-white" />
         </span>
-        <MessageCircle size={28} className="transition-transform group-hover:scale-110" />
+        <MessageCircle className="h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:scale-110" />
       </a>
     </div>
   );

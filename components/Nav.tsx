@@ -107,7 +107,7 @@ export default function Nav() {
           <a
             href="/#contact"
             onClick={() => setOpen(false)}
-            className="press rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-paper"
+            className="press inline-flex min-h-[44px] items-center justify-center rounded-full bg-ink px-4 py-2.5 text-xs font-semibold text-paper"
           >
             Inquire
           </a>
@@ -115,7 +115,7 @@ export default function Nav() {
             aria-label={open ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={open}
             onClick={() => setOpen(!open)}
-            className="press rounded-xl border border-ink/15 bg-white p-2 text-ink shadow-sm"
+            className="press inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-ink/15 bg-white p-2.5 text-ink shadow-sm"
           >
             {open ? <X size={22} /> : <Menu size={22} />}
           </button>

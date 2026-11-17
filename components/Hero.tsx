@@ -34,7 +34,7 @@ export default function Hero() {
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
           {/* Left Column: Studio Pitch */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 min-w-0">
             {/* Location & Positioning Pill */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -51,17 +51,17 @@ export default function Hero() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease, delay: 0.05 }}
-              className="mb-8 max-w-xl rounded-2xl border border-white/10 bg-black p-4 sm:p-5 text-white shadow-md"
+              className="mb-8 w-full max-w-xl rounded-2xl border border-white/10 bg-black p-4 sm:p-5 text-white shadow-md"
               aria-label="Studio Availability"
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <span className="relative flex h-2 w-2 shrink-0">
                   {!reduce && (
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-40" />
                   )}
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
                 </span>
-                <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-lime">
+                <span className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-lime break-words">
                   {site.availability.status}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export default function Hero() {
             </motion.div>
 
             {/* Quick trust metrics */}
-            <div className="mt-10 grid grid-cols-3 gap-4 border-t border-ink/10 pt-6">
+            <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-4 border-t border-ink/10 pt-6">
               <div>
                 <p className="font-display text-2xl font-bold text-ink sm:text-3xl">
                   100%
@@ -171,7 +171,7 @@ export default function Hero() {
           </div>
 
           {/* Right Column: Visual Studio Composition Mockup */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 min-w-0">
             <motion.div
               initial={{ opacity: 0, scale: reduce ? 1 : 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -179,18 +179,18 @@ export default function Hero() {
               className="relative mx-auto max-w-lg lg:max-w-none"
             >
               {/* Studio Window Card */}
-              <div className="relative overflow-hidden rounded-3xl border border-ink/15 bg-ink p-6 text-paper shadow-2xl">
+              <div className="relative overflow-hidden rounded-3xl border border-ink/15 bg-ink p-5 sm:p-6 text-paper shadow-2xl">
                 {/* Header bar */}
-                <div className="flex items-center justify-between border-b border-paper/10 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-rose-500" />
-                    <span className="h-3 w-3 rounded-full bg-amber-400" />
-                    <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                    <span className="ml-2 font-mono text-xs text-paper/50">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-paper/10 pb-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-3 w-3 shrink-0 rounded-full bg-rose-500" />
+                    <span className="h-3 w-3 shrink-0 rounded-full bg-amber-400" />
+                    <span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500" />
+                    <span className="ml-1 sm:ml-2 font-mono text-xs text-paper/50 truncate max-w-[130px] xs:max-w-[160px] sm:max-w-none">
                       {site.domain}/studio
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-lime/20 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-lime">
+                  <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-lime/20 px-2.5 py-0.5 font-mono text-[10px] sm:text-[11px] font-semibold text-lime">
                     <Zap size={11} /> Next.js 15 Ready
                   </span>
                 </div>
