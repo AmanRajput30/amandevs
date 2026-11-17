@@ -72,12 +72,10 @@ export async function POST(request: Request) {
 
     // 3. Spam Protection (Honeypot)
     if (_hp && typeof _hp === "string" && _hp.trim().length > 0) {
-      // Return a simulated success to confuse bot crawlers without persisting spam
-      return NextResponse.json({
-        success: true,
-        inquiryId: "AD-SPAM-FILTERED",
-        message: "Enquiry submitted successfully.",
-      });
+      return NextResponse.json(
+        { error: "Invalid submission detected." },
+        { status: 400 }
+      );
     }
 
     // 4. Input Sanitization
@@ -162,12 +160,12 @@ export async function POST(request: Request) {
     // 6. SAVE TO PERSISTENT STORAGE
     try {
       await saveInquiry(inquiryRecord);
-    } catch (storageErr) {
-      console.error("[Inquiry Storage Failure]:", storageErr);
+    } catch {
+      console.error("[Inquiry Storage Failure] Safe persistence failed.");
       return NextResponse.json(
         {
           error:
-            "Unable to record enquiry. Please contact us directly via WhatsApp (+91 73690 83321) or email hello@amandevs.run.place.",
+            "Unable to record enquiry at this time. Please contact us directly via WhatsApp (+91 73690 83321) or email hello@amandevs.run.place.",
         },
         { status: 500 }
       );
@@ -180,23 +178,23 @@ export async function POST(request: Request) {
     }
 
     console.log(
-      `[AmanDevs] ✅ Commercial Inquiry Logged [${mode.toUpperCase()}]: ${inquiryId} from ${inquiryRecord.name} (${inquiryRecord.phone})`
+      `[AmanDevs] Commercial inquiry successfully processed [${mode.toUpperCase()}]. Reference: ${inquiryId}`
     );
 
     return NextResponse.json({
       success: true,
       inquiryId,
-      message: `Your project enquiry has been logged under Reference #${inquiryId}. Aman Raj will review your brief and follow up with you.`,
+      message:
+        "Thank you for contacting AmanDevs. Your project enquiry has been successfully recorded. Our team will review your requirements and contact you personally.",
       supportEmail: primarySupportEmail,
       inquiry: {
         id: inquiryId,
-        name: inquiryRecord.name,
         service: inquiryRecord.service,
         createdAt: inquiryRecord.createdAt,
       },
     });
-  } catch (err: unknown) {
-    console.error("[Inquiry API Unexpected Error]:", err);
+  } catch {
+    console.error("[Inquiry API Unexpected Error] An unexpected error occurred while processing an enquiry.");
     return NextResponse.json(
       {
         error:

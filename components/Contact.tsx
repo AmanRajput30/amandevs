@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Phone,
   Send,
+  ShieldCheck,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -159,14 +160,20 @@ export default function Contact() {
 
       const result = await res.json();
 
-      if (!res.ok) {
-        throw new Error(result.error || "Failed to submit enquiry.");
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Failed to submit enquiry. Please try again or reach out on WhatsApp.");
       }
 
-      setConfirmedId(result.inquiryId || "AD-" + Date.now().toString().slice(-6));
+      // Verify a genuine server-generated Reference ID format (AD-YYYYMM-XXXX) was received
+      const validIdPattern = /^AD-\d{6}-\d{4}$/;
+      if (!result.inquiryId || typeof result.inquiryId !== "string" || !validIdPattern.test(result.inquiryId)) {
+        throw new Error("Unable to confirm your Reference ID from the server. Please contact us directly via WhatsApp or phone.");
+      }
+
+      setConfirmedId(result.inquiryId);
       setStatus("success");
     } catch (err: unknown) {
-      const errorStr = err instanceof Error ? err.message : "Something went wrong.";
+      const errorStr = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setErrorMessage(errorStr);
       setStatus("error");
     }
@@ -378,58 +385,80 @@ export default function Contact() {
                 )}
 
                 {/* Form states */}
-                {status === "success" ? (
-                  <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-50 p-6 text-emerald-950 animate-fadeIn">
-                    <div className="flex items-center gap-2.5">
-                      <CheckCircle2 size={24} className="text-emerald-600 shrink-0" />
-                      <h4 className="font-display text-lg font-bold">
-                        Enquiry Successfully Logged!
-                      </h4>
+                {status === "success" && confirmedId ? (
+                  <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-50 p-6 sm:p-8 text-emerald-950 animate-fadeIn">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                        <CheckCircle2 size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-display text-xl font-bold tracking-tight text-emerald-950 sm:text-2xl">
+                          Your enquiry has been received!
+                        </h4>
+                        <span className="font-mono text-xs font-semibold text-emerald-700">
+                          Database Record Confirmed
+                        </span>
+                      </div>
                     </div>
 
-                    <p className="mt-2 text-sm leading-relaxed text-emerald-900">
-                      Thank you, <strong>{formData.name}</strong>. Your project enquiry has been successfully recorded in our system. Aman Raj will review your project brief for <strong>{formData.service}</strong> and get back to you directly.
+                    <p className="mt-4 text-sm leading-relaxed text-emerald-900 sm:text-base">
+                      Thank you for contacting AmanDevs. Your project enquiry has been successfully recorded. Our team will review your requirements and contact you personally.
                     </p>
 
-                    {/* Reference ID Pill */}
-                    {confirmedId && (
-                      <div className="mt-4 flex items-center justify-between rounded-xl bg-white/80 p-3.5 border border-emerald-600/20 text-xs">
+                    {/* Prominent Reference ID Card */}
+                    <div className="mt-6 rounded-2xl border border-emerald-600/20 bg-white/90 p-4 sm:p-5 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-800">
-                            Your Reference ID
+                          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                            Reference ID
                           </span>
-                          <p className="font-mono text-base font-bold text-emerald-950">
+                          <p className="font-mono text-xl sm:text-2xl font-extrabold tracking-tight text-emerald-950">
                             {confirmedId}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={copyInquiryId}
-                          className="press flex items-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-200"
+                          className="press inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 px-4 py-2.5 text-xs font-bold text-emerald-900 transition-colors"
                         >
                           {copied ? (
                             <>
-                              <Check size={14} className="text-emerald-700" />
-                              <span>Copied!</span>
+                              <Check size={16} className="text-emerald-700" />
+                              <span>Reference ID Copied!</span>
                             </>
                           ) : (
                             <>
-                              <Copy size={14} />
-                              <span>Copy ID</span>
+                              <Copy size={16} />
+                              <span>Copy Reference ID</span>
                             </>
                           )}
                         </button>
                       </div>
-                    )}
+                    </div>
 
-                    <div className="mt-6 flex flex-wrap gap-3">
+                    {/* Manual Follow-up Expectations Card */}
+                    <div className="mt-5 rounded-xl border border-emerald-900/10 bg-emerald-100/60 p-4 text-xs leading-relaxed text-emerald-900">
+                      <div className="flex items-start gap-2.5">
+                        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-700" />
+                        <div>
+                          <strong className="font-semibold text-emerald-950">Personal Review & Follow-up:</strong>
+                          <p className="mt-1 text-emerald-800">
+                            Founder Aman Raj personally evaluates every project brief. We will reach out to you directly via WhatsApp or phone to discuss your scope and next steps. No automatic emails or spam are sent.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="mt-6 flex flex-col sm:flex-row gap-3">
                       <a
                         href={`https://wa.me/${site.whatsapp}?text=${whatsappMessage}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="press inline-flex items-center gap-2 rounded-full bg-emerald-700 px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-800"
+                        className="press inline-flex items-center justify-center gap-2 rounded-full bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-bold text-white shadow-sm transition-all"
                       >
-                        <MessageCircle size={15} /> Confirm on WhatsApp with ID
+                        <MessageCircle size={16} />
+                        <span>Chat on WhatsApp with Reference ID</span>
                       </a>
 
                       <button
@@ -450,9 +479,9 @@ export default function Contact() {
                             referenceUrl: "",
                           });
                         }}
-                        className="press rounded-full border border-emerald-700/20 bg-white px-4 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
+                        className="press inline-flex items-center justify-center gap-2 rounded-full border border-emerald-700/25 bg-white hover:bg-emerald-50 px-5 py-3 text-xs font-bold text-emerald-900 transition-all"
                       >
-                        Submit Another Inquiry
+                        <span>Submit Another Enquiry</span>
                       </button>
                     </div>
                   </div>

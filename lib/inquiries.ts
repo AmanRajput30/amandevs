@@ -75,12 +75,25 @@ async function getInquiriesFromJson(): Promise<InquiryData[]> {
   return JSON.parse(raw || "[]");
 }
 
+let mockSaveInquiry: ((inquiry: InquiryData) => Promise<void>) | null = null;
+
+/**
+ * Test utility to intercept persistence during isolated offline testing
+ */
+export function __setSaveInquiryMock(fn: ((inquiry: InquiryData) => Promise<void>) | null): void {
+  mockSaveInquiry = fn;
+}
+
 /**
  * Save an inquiry.
  * Inserts into Neon PostgreSQL when DATABASE_URL is available.
  * Does not fall back to JSON in production.
  */
 export async function saveInquiry(inquiry: InquiryData): Promise<void> {
+  if (mockSaveInquiry) {
+    return mockSaveInquiry(inquiry);
+  }
+
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
@@ -127,9 +140,8 @@ export async function saveInquiry(inquiry: InquiryData): Promise<void> {
         ${JSON.stringify(inquiry.metadata || {})}
       )
     `;
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown database error";
-    console.error("[Database Persistence Error]:", msg);
+  } catch {
+    console.error("[Database Persistence Error] Database query failed to execute.");
     // Explicit controlled error without silent JSON fallback in production
     throw new Error("Failed to persist inquiry to database.");
   }
@@ -185,9 +197,8 @@ export async function getInquiries(): Promise<InquiryData[]> {
       status: (r.status as InquiryData["status"]) || "NEW",
       metadata: typeof r.metadata === "object" && r.metadata !== null ? (r.metadata as InquiryData["metadata"]) : undefined,
     }));
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown database error";
-    console.error("[Database Query Error]:", msg);
+  } catch {
+    console.error("[Database Query Error] Failed to retrieve inquiries from database.");
     throw new Error("Failed to retrieve inquiries from database.");
   }
 }
@@ -229,8 +240,8 @@ export async function dispatchWebhook(inquiry: InquiryData): Promise<boolean> {
     });
 
     return res.ok;
-  } catch (err) {
-    console.error("[Webhook Dispatch] Failed to send webhook:", err);
+  } catch {
+    console.error("[Webhook Dispatch] Failed to send webhook.");
     return false;
   }
 }
